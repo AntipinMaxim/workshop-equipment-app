@@ -22,6 +22,9 @@
     li{
         list-style: none;
         cursor: pointer;
+        .selected{
+            background-color: red;
+        }
     }
     ul{
         margin: 0;  

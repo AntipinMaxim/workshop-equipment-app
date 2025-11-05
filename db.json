@@ -1,16 +1,32 @@
 {
   "items": [
     {
-      "id": "1",
-      "name": "Тепловая завеса ворота #1",
+      "id": "8326",
+      "name": "dasdasd",
       "type": "folder",
       "items": [
         {
-          "id": 1,
-          "name": "Двигатель",
-          "type": "subFolder"
+          "id": "9b83b35d-feaa-4486-9114-4f64f2313bbf",
+          "name": "dasdasd",
+          "type": "subFolder",
+          "content": {
+            "title": "dasdasd",
+            "description": "dasdasdasd"
+          }
+        },
+        {
+          "id": "34a9f764-aa57-4712-9398-d555da9e13bc",
+          "name": "dasdas",
+          "type": "subFolder",
+          "content": {
+            "title": "dasdas",
+            "description": "dasdas"
+          }
         }
-      ]
+      ],
+      "content": {
+        "title": "dasdasd"
+      }
     }
   ]
 }

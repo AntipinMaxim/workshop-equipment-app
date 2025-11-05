@@ -1,6 +1,10 @@
 // json-server --watch db.json --port 3000
+import { v4 as uuidv4 } from 'uuid';
+
+import Content from './components/Content/Content';
 
 import { useEffect, useState, useRef } from 'react';
+
 import './App.scss';
 
 function App() {
@@ -13,6 +17,8 @@ function App() {
   const [isSubFolderName, setIsSubFolderName] = useState(false)
   const folderInputRef = useRef(null)
   const subFolderInputRef = useRef(null)
+  const [selectedFolderId, setSelectedFolderId] = useState(null);
+  const [selectedSubFolderId, setSelectedSubFolderId] = useState(null);
 
   useEffect(() => {
     fetch('http://localhost:3000/items')
@@ -49,23 +55,31 @@ function App() {
         body: JSON.stringify({
           name: name,
           type: 'folder',
-          items: []
+          items: [],
+          content: {
+            title: name
+          }
         })
       }
     )
     const refreshed = await fetch('http://localhost:3000/items')
       .then(res => res.json())
     setItems(refreshed);
-      
-     
+
+    setSelectedFolderId(null)
+    setSelectedSubFolderId(null)
   }
 
-  const showSubInput = (parentId) => {
-    setParentId(parentId)
-    setIsSubFolderName(true)
+  const showSubInput = () => {
+    if(parentId) {
+      setParentId(parentId)
+      setIsSubFolderName(true)
+    }
   }
 
   const addSubFolder = async (id) => {
+    const newId = uuidv4()
+
     const name = subFolderName.trim()
     if(!name || name === '') return
 
@@ -82,9 +96,12 @@ function App() {
           items: [
             ...parent.items,
             {
-              id: parent.items.length + 1,
+              id: newId,
               name: name,
               type: 'subFolder',
+              content: {
+                title: name
+              }
             }
           ]
         })
@@ -94,12 +111,16 @@ function App() {
     const refreshed = await fetch('http://localhost:3000/items')
       .then(res => res.json())
     setItems(refreshed);
+
+    setSelectedFolderId(null)
+    setSelectedSubFolderId(null)
   }
 
   const onFolderBlur = () => {
     addFolder();
     setIsFolderName(false)
     setFolderName('')
+    setParentId(null)
   };
 
   const onFolderKeyDown = (e) => {
@@ -108,6 +129,7 @@ function App() {
       addFolder();
       setIsFolderName(false)
       setFolderName('')
+      setParentId(null)
     }
   };
 
@@ -115,6 +137,7 @@ function App() {
     addSubFolder(id);
     setIsSubFolderName(false)
     setSubFolderName('')
+    setParentId(null)
   };
 
   const onSubFolderKeyDown = (e, id) => {
@@ -123,8 +146,44 @@ function App() {
       addSubFolder(id);
       setIsSubFolderName(false)
       setSubFolderName('')
+      setParentId(null)
     }
   };
+
+  const onSelectedFolder = (idParent, i) => {
+    if(idParent) {
+      setSelectedFolderId(idParent)
+      setParentId(idParent)
+      setSelectedSubFolderId(null)
+    }
+  }
+
+  const onSelectedSubFolder = (id, idParent) => {
+    setSelectedSubFolderId(id)
+    setParentId(idParent)
+    setSelectedFolderId(null)
+  }
+
+  const removeFolder = async () => {
+    if(!parentId) return
+
+    const res = await fetch(`http://localhost:3000/items/${parentId}`,
+      {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    )
+
+    const refreshed = await fetch('http://localhost:3000/items')
+      .then(res => res.json())
+    setItems(refreshed);
+  }
+
+  const onRefreshed = (arr) => {
+    setItems(arr);
+  }
 
   return (
     <div className="app">
@@ -133,6 +192,8 @@ function App() {
         <nav>
           <span>Навигация</span>
           <button onClick={addFolder}>+</button>
+          <button onClick={() => showSubInput()}>++</button>
+          <button onClick={() => removeFolder()}>-</button>
           {isFolderName ?
            <input type="text"
                   ref={folderInputRef}
@@ -141,11 +202,13 @@ function App() {
                   onBlur={onFolderBlur}
                   onKeyDown={onFolderKeyDown}
                   placeholder="Название папки" /> : null}
-          {items.map((item, id) => {
+          {items.map((item, i) => {
             return (
-              <li key={id}>
-                {item.name}
-                <button onClick={() => showSubInput(item.id)}>+</button>
+              <li key={i}>
+                <span onClick={() => onSelectedFolder(item.id, i)}
+                      className= {selectedFolderId === item.id ? 'selected' : ''}>
+                        {item.name}
+                </span>
                 {isSubFolderName && parentId === item.id ?
                 <input type="text"
                         ref={subFolderInputRef}
@@ -155,13 +218,21 @@ function App() {
                         onKeyDown={(e) => onSubFolderKeyDown(e, item.id)}
                         placeholder="Название папки" /> : null}
                   <ul>
-                    {item.items.map((item, id) => <li key={id}>{item.name}</li>)}
+                    {item.items.map((subItem, id) => <li key={id}>
+                      <span onClick={() => onSelectedSubFolder(subItem.id, item.id)}
+                            className= {selectedSubFolderId === subItem.id ? 'selected' : ''}>
+                        {subItem.name}
+                      </span></li>)}
                   </ul>
               </li>
             )
           })}
         </nav>
-        <div className="content">Контент</div>
+        <Content items={items} 
+                 selectedFolderId={selectedFolderId} 
+                 selectedSubFolderId={selectedSubFolderId}
+                 parentId={parentId}
+                 onRefreshed={onRefreshed}/>
       </div>
     </div>
   );
